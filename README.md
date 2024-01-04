@@ -1,1 +1,1 @@
-# loneiros-prezmate-subtitle
+# NaviAI-prezmate-version-for-VinTalk

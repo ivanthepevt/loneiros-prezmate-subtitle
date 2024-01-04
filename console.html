@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Console</title>
+  <style>
+    #buttonsContainer button {
+      display: block;
+      width: 50vw;
+      text-align: left;
+    }
+
+    .CapButton {
+      margin-top: 0.3rem;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Console</h1>
+  <h3>Presentation of </h3>
+  <h3 id="Presenter"></h3>
+
+  <a href="./receiver.html" target="_blank" onclick="window.open('./receiver.html', 'newwindow', 'width=640, height=360'); return false;">Present in new window</a>
+  <br>
+  <a href="./receiver.html" target="_blank">Present in New Tab</a>
+
+  <form id="UploadForm">
+    <input type="file" id="FileInput" accept=".tsv" />
+    <button type="submit">Load TSV</button>
+  </form>
+
+  <div id="buttonsContainer"></div>
+  <script src="processing.js"></script>
+
+
+  <script>
+    let format, minSlide, maxSlide;
+    var filePath;
+
+    const channel = new BroadcastChannel('my_channel');
+    // Send a message to the other tab
+    function sendMessage(message) {
+      channel.postMessage(message);
+    }
+
+    // Handle form submission
+    document.getElementById('UploadForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      var fileInput = document.getElementById('FileInput');
+      var file = fileInput.files[0];
+      var reader = new FileReader();
+      filePath = file.name.split('.').slice(0, -1).join('.');
+
+      reader.onload = function (event) {
+        var csvData = event.target.result;
+        var rows = csvData.split('\n');
+
+        var buttonsContainer = document.getElementById('buttonsContainer');
+
+        clearDivContent("buttonsContainer");
+        var sub = [];
+        var clr = [];
+        for (var i = 0; i < rows.length; i++) {
+          var columns = rows[i].split('\t');
+          if (columns.length >= 2) {
+            var newButton = document.createElement('button');
+            newButton.innerText = columns[0];
+            newButton.id = i;
+            newButton.className = "CapButton";
+            sub[i] = columns[1]; // Get the content from column B
+            //console.log(sub[i]);
+            if (columns.length >= 2) {
+              var newButton = document.createElement('button');
+              newButton.innerText = columns[0];
+              newButton.id = i;
+              newButton.className = "CapButton";
+              sub[i] = columns[1]; // Get the content from column B
+              newButton.addEventListener('click', function (e) {
+                messageSend = { type: "sub", content: sub[e.target.id] };
+                console.log(messageSend);
+                channel.postMessage(messageSend, '*');
+                e.target.style.opacity = "0.5"; // Make the button appear faded after clicking
+              });
+              buttonsContainer.appendChild(newButton);
+            } // Get the content from column C
+            newButton.addEventListener('click', function (e) {
+              messageSend = { type: "sub", content: sub[e.target.id], color: clr[e.target.id] };
+              console.log(messageSend);
+              channel.postMessage(messageSend, '*');
+            });
+            buttonsContainer.appendChild(newButton);
+          }
+        }
+        console.log(filePath);
+        //Fetching Data
+        const jsonFilePath = filePath + '/info.json';
+        async function fetchData() {
+          try {
+            const response = await fetch(jsonFilePath);
+            const data = await response.json();
+            format = data.format;
+            minSlide = data.minSlide;
+            maxSlide = data.maxSlide;
+          } catch (error) {
+            console.error(`Error reading JSON file: ${error}`);
+          }
+        }
+
+        fetchData();
+
+      };
+
+      reader.readAsText(file);
+    });
+
+    //Functions to change slide
+    slideState = -1;
+    function prevSlide() {
+      if (slideState === -1) {
+        slideState = minSlide;
+        return pathFormat(filePath, slideState, format);
+      }
+      if (slideState > minSlide)
+        slideState = slideState - 1;
+      return pathFormat(filePath, slideState, format);
+    }
+
+    function nextSlide() {
+      if (slideState === -1) {
+        slideState = minSlide;
+        return pathFormat(filePath, slideState, format);
+      }
+      if (slideState < maxSlide)
+        slideState = slideState + 1;
+      return pathFormat(filePath, slideState, format);
+    }
+
+    function clearSub() {
+      messageSend = { type: "sub", content: "" };
+      console.log(messageSend);
+      channel.postMessage(messageSend, '*');
+    }
+
+    //Changing slide with Cue
+    document.addEventListener('keydown', function (event) {
+      if (event.keyCode === 38 || event.keyCode === 37) {
+        // Left arrow key is pressed
+        messageSend = { type: "slide", content: prevSlide() };
+        console.log(messageSend);
+        channel.postMessage(messageSend, '*');
+      } else if (event.keyCode === 40 || event.keyCode === 39) {
+        // Right arrow key is pressed
+        messageSend = { type: "slide", content: nextSlide() };
+        console.log(messageSend);
+        channel.postMessage(messageSend, '*');
+      } else if (event.keyCode === 67) {
+        // Press C to clear subtitle
+        clearSub();
+      }
+    });
+
+    function reset() {
+      slideState = -1;
+    }
+
+  </script>
+</body>
+
+</html>
