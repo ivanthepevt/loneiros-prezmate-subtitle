@@ -37,6 +37,7 @@
   <script>
     let format, minSlide, maxSlide;
     var filePath;
+    var currentLine = 0;
 
     const channel = new BroadcastChannel('my_channel');
     // Send a message to the other tab
@@ -70,27 +71,17 @@
             newButton.id = i;
             newButton.className = "CapButton";
             sub[i] = columns[1]; // Get the content from column B
-            //console.log(sub[i]);
-            if (columns.length >= 2) {
-              var newButton = document.createElement('button');
-              newButton.innerText = columns[0];
-              newButton.id = i;
-              newButton.className = "CapButton";
-              sub[i] = columns[1]; // Get the content from column B
-              newButton.addEventListener('click', function (e) {
-                messageSend = { type: "sub", content: sub[e.target.id] };
-                console.log(messageSend);
-                channel.postMessage(messageSend, '*');
-                e.target.style.opacity = "0.5"; // Make the button appear faded after clicking
-              });
-              buttonsContainer.appendChild(newButton);
-            } // Get the content from column C
+
             newButton.addEventListener('click', function (e) {
-              messageSend = { type: "sub", content: sub[e.target.id], color: clr[e.target.id] };
+              messageSend = { type: "sub", content: sub[e.target.id] };
               console.log(messageSend);
               channel.postMessage(messageSend, '*');
+              e.target.style.opacity = "0.5";
+              currentLine = parseInt(e.target.id);
+              e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
             });
             buttonsContainer.appendChild(newButton);
+            // Get the content from column C
           }
         }
         console.log(filePath);
@@ -158,6 +149,10 @@
       } else if (event.keyCode === 67) {
         // Press C to clear subtitle
         clearSub();
+      }
+      else if (event.keyCode === 78) {
+        console.log(currentLine + 1);
+        document.getElementById((currentLine + 1).toString()).click();
       }
     });
 
